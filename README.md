@@ -1,5 +1,3 @@
-# Reduction Machine in <span>&lambda;&#773;</span>&mu;<span>&mu;&#771;</span>-calculus
+# Reduction Machine in λ̅μμ̃-calculus
 
-Making the head reduction machine in <span>&lambda;&#773;</span>&mu;<span>&mu;&#771;</span>
-
-λ̅μμ̃-calculus
+Making the head reduction machine in λ̅μμ̃-calculus
