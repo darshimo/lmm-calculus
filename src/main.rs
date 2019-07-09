@@ -8,7 +8,7 @@ fn main() {
     //println!("λμ-calculus");
     //println!("λ̅μ-calculus");
     //println!("λ̅μμ̃-calculus");
-    println!("");
+    println!("please input lambda-term");
 
     let s: String = read::read();
 
