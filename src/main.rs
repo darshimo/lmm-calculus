@@ -19,5 +19,5 @@ fn main() {
 
     println!("");
     println!("{}", e);
-    //e.reduction();
+    e.reduction();
 }

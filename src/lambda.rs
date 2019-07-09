@@ -86,16 +86,13 @@ impl LTerm {
           let tmp = generate_variable();
           Abstraction(
             tmp.clone(),
-            Box::new(
-              t.substitution(&y, &Variable(tmp.clone()))
-                .substitution(&x, &v),
-            ),
+            Box::new(t.substitution(y, &Variable(tmp.clone())).substitution(x, v)),
           )
         }
       }
       Application(t1, t2) => Application(
-        Box::new(t1.substitution(&x, &v)),
-        Box::new(t2.substitution(&x, &v)),
+        Box::new(t1.substitution(x, v)),
+        Box::new(t2.substitution(x, v)),
       ),
     }
   }

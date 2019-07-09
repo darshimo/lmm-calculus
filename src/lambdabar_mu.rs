@@ -45,54 +45,28 @@ impl LbMCommand {
     Command(Box::new(t), Box::new(c))
   }
 
-  /*
-  fn substitution(&self, x: &String, v: &LbMCommand) -> LbMCommand {
-    match self {
-      Variable(y) => {
-        if x == y {
-          v.clone()
-        } else {
-          self.clone()
-        }
-      }
-      Abstraction(y, t) => {
-        if x == y {
-          self.clone()
-        } else {
-          let tmp = generate_variable();
-          Abstraction(
-            tmp.clone(),
-            Box::new(
-              t.substitution(&y, &Variable(tmp.clone()))
-                .substitution(&x, &v),
-            ),
-          )
-        }
-      }
-      Application(t1, t2) => Application(
-        Box::new(t1.substitution(&x, &v)),
-        Box::new(t2.substitution(&x, &v)),
-      ),
-    }
+  fn substitution_term(&self, x: &String, v: &LbMTerm) -> LbMCommand {
+    let Command(t, c) = self;
+    Command(
+      Box::new(t.substitution_term(x, v)),
+      Box::new(c.substitution_term(x, v)),
+    )
+  }
+
+  fn substitution_context(&self, beta: &String, e: &LbMContext) -> LbMCommand {
+    let Command(t, c) = self;
+    Command(
+      Box::new(t.substitution_context(beta, e)),
+      Box::new(c.substitution_context(beta, e)),
+    )
   }
 
   fn step(&self) -> Option<LbMCommand> {
-    if let Application(t1, t2) = self {
-      if t1.is_abstraction() {
-        if t2.is_abstraction() {
-          t1.application(t2)
-        } else {
-          match t2.step() {
-            None => None,
-            Some(t22) => Some(Application(t1.clone(), Box::new(t22.clone()))),
-          }
-        }
-      } else {
-        match t1.step() {
-          None => None,
-          Some(t11) => Some(Application(Box::new(t11.clone()), t2.clone())),
-        }
-      }
+    let Command(v, e) = self;
+    if v.is_labstraction() && e.is_cstack() {
+      Some(v.to(e))
+    } else if v.is_mabstraction() {
+      Some(v.mu(e))
     } else {
       None
     }
@@ -111,7 +85,6 @@ impl LbMCommand {
     }
     tmp
   }
-  */
 }
 
 impl Clone for LbMCommand {
@@ -167,80 +140,38 @@ impl LbMContext {
     }
   }
 
-  fn is_cvariable(&self) -> bool {
+  fn is_cstack(&self) -> bool {
     match self {
-      CVariable(_) => true,
+      CStack(_, _) => true,
       _ => false,
     }
   }
 
-  /*
-  fn substitution(&self, x: &String, v: &LbMContext) -> LbMContext {
+  fn substitution_term(&self, x: &String, v: &LbMTerm) -> LbMContext {
     match self {
-      Variable(y) => {
-        if x == y {
-          v.clone()
-        } else {
-          self.clone()
-        }
-      }
-      Abstraction(y, t) => {
-        if x == y {
-          self.clone()
-        } else {
-          let tmp = generate_variable();
-          Abstraction(
-            tmp.clone(),
-            Box::new(
-              t.substitution(&y, &Variable(tmp.clone()))
-                .substitution(&x, &v),
-            ),
-          )
-        }
-      }
-      Application(t1, t2) => Application(
-        Box::new(t1.substitution(&x, &v)),
-        Box::new(t2.substitution(&x, &v)),
+      CVariable(_) => self.clone(),
+      CStack(t, e) => CStack(
+        Box::new(t.substitution_term(x, v)),
+        Box::new(e.substitution_term(x, v)),
       ),
     }
   }
 
-  fn step(&self) -> Option<LbMContext> {
-    if let Application(t1, t2) = self {
-      if t1.is_abstraction() {
-        if t2.is_abstraction() {
-          t1.application(t2)
+  fn substitution_context(&self, beta: &String, e: &LbMContext) -> LbMContext {
+    match self {
+      CVariable(alpha) => {
+        if alpha == beta {
+          e.clone()
         } else {
-          match t2.step() {
-            None => None,
-            Some(t22) => Some(Application(t1.clone(), Box::new(t22.clone()))),
-          }
-        }
-      } else {
-        match t1.step() {
-          None => None,
-          Some(t11) => Some(Application(Box::new(t11.clone()), t2.clone())),
+          self.clone()
         }
       }
-    } else {
-      None
+      CStack(v, t) => CStack(
+        Box::new(v.substitution_context(beta, e)),
+        Box::new(t.substitution_context(beta, e)),
+      ),
     }
   }
-
-  pub fn reduction(&self) -> LbMContext {
-    let mut tmp = self.clone();
-    loop {
-      println!("{}", tmp);
-      match tmp.step() {
-        None => {
-          break;
-        }
-        Some(s) => tmp = s.clone(),
-      }
-    }
-    tmp
-  }
-  */
 }
 
 impl Clone for LbMContext {
@@ -313,81 +244,76 @@ impl LbMTerm {
     }
   }
 
-  /*
-  fn substitution(&self, x: &String, v: &LbMTerm) -> LbMTerm {
+  fn substitution_term(&self, x: &String, v: &LbMTerm) -> LbMTerm {
     match self {
-      Variable(y) => {
+      TVariable(y) => {
         if x == y {
           v.clone()
         } else {
           self.clone()
         }
       }
-      Abstraction(y, t) => {
+      LAbstraction(y, t) => {
         if x == y {
           self.clone()
         } else {
-          let tmp = generate_variable();
-          Abstraction(
+          let tmp = generate_tvariable();
+          LAbstraction(
             tmp.clone(),
             Box::new(
-              t.substitution(&y, &Variable(tmp.clone()))
-                .substitution(&x, &v),
+              t.substitution_term(y, &TVariable(tmp.clone()))
+                .substitution_term(x, v),
             ),
           )
         }
       }
-      Application(t1, t2) => Application(
-        Box::new(t1.substitution(&x, &v)),
-        Box::new(t2.substitution(&x, &v)),
-      ),
+      MAbstraction(beta, c) => MAbstraction(beta.clone(), Box::new(c.substitution_term(x, v))),
     }
   }
 
-  fn application(&self, v2: &LbMTerm) -> Option<LbMTerm> {
-    if let Abstraction(x, t12) = self {
-      Some(t12.substitution(x, v2))
-    } else {
-      None
-    }
-  }
-
-  fn step(&self) -> Option<LbMTerm> {
-    if let Application(t1, t2) = self {
-      if t1.is_abstraction() {
-        if t2.is_abstraction() {
-          t1.application(t2)
+  fn substitution_context(&self, beta: &String, e: &LbMContext) -> LbMTerm {
+    match self {
+      TVariable(_) => self.clone(),
+      LAbstraction(x, t) => LAbstraction(x.clone(), Box::new(t.substitution_context(beta, e))),
+      MAbstraction(alpha, c) => {
+        if alpha == beta {
+          self.clone()
         } else {
-          match t2.step() {
-            None => None,
-            Some(t22) => Some(Application(t1.clone(), Box::new(t22.clone()))),
-          }
-        }
-      } else {
-        match t1.step() {
-          None => None,
-          Some(t11) => Some(Application(Box::new(t11.clone()), t2.clone())),
+          let tmp = generate_cvariable();
+          MAbstraction(
+            tmp.clone(),
+            Box::new(
+              c.substitution_context(alpha, &CVariable(tmp.clone()))
+                .substitution_context(beta, e),
+            ),
+          )
         }
       }
-    } else {
-      None
     }
   }
 
-  pub fn reduction(&self) -> LbMTerm {
-    let mut tmp = self.clone();
-    loop {
-      println!("{}", tmp);
-      match tmp.step() {
-        None => {
-          break;
+  fn to(&self, e0: &LbMContext) -> LbMCommand {
+    match self {
+      LAbstraction(x, v1) => match e0 {
+        CStack(v2, e) => Command(Box::new(v1.substitution_term(x, v2)), e.clone()),
+        _ => {
+          panic!("panic");
         }
-        Some(s) => tmp = s.clone(),
+      },
+      _ => {
+        panic!("panic");
       }
     }
-    tmp
   }
-  */
+
+  fn mu(&self, e: &LbMContext) -> LbMCommand {
+    match self {
+      MAbstraction(beta, c) => c.substitution_context(beta, e),
+      _ => {
+        panic!("panic");
+      }
+    }
+  }
 }
 
 impl Clone for LbMTerm {
