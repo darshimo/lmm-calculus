@@ -27,6 +27,8 @@ Note that consecutive characters are regarded as a token. You should put whitesp
 
 ## Example
 
+In reduction process, variable names are changed properly in order to avoid *variable capture*.
+
 ```
 $ cargo run
 λ-calculus head reduction machine
