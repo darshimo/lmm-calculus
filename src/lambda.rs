@@ -129,13 +129,16 @@ impl LTerm {
 
   pub fn reduction(&self) -> LTerm {
     let mut tmp = self.clone();
+    println!("  {}", tmp);
     loop {
-      println!("{}", tmp);
       match tmp.step() {
         None => {
           break;
         }
-        Some(s) => tmp = s.clone(),
+        Some(s) => {
+          tmp = s.clone();
+          println!("→ {}", tmp);
+        }
       }
     }
     tmp

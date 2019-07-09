@@ -18,6 +18,5 @@ fn main() {
     let e = LbMCommand::new(s);
 
     println!("");
-    println!("{}", e);
     e.reduction();
 }

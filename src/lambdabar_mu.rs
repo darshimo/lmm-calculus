@@ -74,13 +74,16 @@ impl LbMCommand {
 
   pub fn reduction(&self) -> LbMCommand {
     let mut tmp = self.clone();
+    println!("  {}", tmp);
     loop {
-      println!("{}", tmp);
       match tmp.step() {
         None => {
           break;
         }
-        Some(s) => tmp = s.clone(),
+        Some(s) => {
+          tmp = s.clone();
+          println!("→ {}", tmp);
+        }
       }
     }
     tmp
