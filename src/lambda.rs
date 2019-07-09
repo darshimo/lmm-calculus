@@ -2,26 +2,26 @@ use std::char;
 use std::collections::VecDeque;
 use std::fmt;
 
-use Lambda::{Abstraction, Application, Variable};
+use LTerm::{Abstraction, Application, Variable};
 
-pub enum Lambda {
+pub enum LTerm {
   Variable(String),
-  Abstraction(String, Box<Lambda>),
-  Application(Box<Lambda>, Box<Lambda>),
+  Abstraction(String, Box<LTerm>),
+  Application(Box<LTerm>, Box<LTerm>),
 }
 
-impl Lambda {
-  pub fn new(s: String) -> Lambda {
+impl LTerm {
+  pub fn new(s: String) -> LTerm {
     let mut q = lexer(s, " λ.()");
-    Lambda::parser(&mut q, false)
+    LTerm::parser(&mut q, false)
   }
 
-  fn parser(q: &mut VecDeque<String>, in_abst: bool) -> Lambda {
-    let mut tmp: Option<Lambda> = None;
+  fn parser(q: &mut VecDeque<String>, in_abst: bool) -> LTerm {
+    let mut tmp: Option<LTerm> = None;
     while let Some(s) = q.pop_front() {
       if s == " " {
       } else if s == "(" {
-        let tmp2 = Lambda::parser(q, false);
+        let tmp2 = LTerm::parser(q, false);
         match tmp {
           None => tmp = Some(tmp2),
           Some(t) => tmp = Some(Application(Box::new(t), Box::new(tmp2))),
@@ -37,7 +37,7 @@ impl Lambda {
         if dot != "." {
           panic!("is not dot");
         }
-        let t = Lambda::parser(q, true);
+        let t = LTerm::parser(q, true);
         let tmp2 = Abstraction(v, Box::new(t));
         match tmp {
           None => tmp = Some(tmp2),
@@ -70,7 +70,7 @@ impl Lambda {
     }
   }
 
-  fn substitution(&self, x: &String, v: &Lambda) -> Lambda {
+  fn substitution(&self, x: &String, v: &LTerm) -> LTerm {
     match self {
       Variable(y) => {
         if x == y {
@@ -100,7 +100,7 @@ impl Lambda {
     }
   }
 
-  fn application(&self, v2: &Lambda) -> Option<Lambda> {
+  fn application(&self, v2: &LTerm) -> Option<LTerm> {
     if let Abstraction(x, t12) = self {
       Some(t12.substitution(x, v2))
     } else {
@@ -108,7 +108,7 @@ impl Lambda {
     }
   }
 
-  fn step(&self) -> Option<Lambda> {
+  fn step(&self) -> Option<LTerm> {
     if let Application(t1, t2) = self {
       if t1.is_abstraction() {
         if t2.is_abstraction() {
@@ -130,7 +130,7 @@ impl Lambda {
     }
   }
 
-  pub fn reduction(&self) -> Lambda {
+  pub fn reduction(&self) -> LTerm {
     let mut tmp = self.clone();
     loop {
       println!("{}", tmp);
@@ -145,8 +145,8 @@ impl Lambda {
   }
 }
 
-impl Clone for Lambda {
-  fn clone(&self) -> Lambda {
+impl Clone for LTerm {
+  fn clone(&self) -> LTerm {
     match self {
       Variable(x) => Variable(x.clone()),
       Abstraction(x, t1) => Abstraction(x.clone(), t1.clone()),
@@ -155,7 +155,7 @@ impl Clone for Lambda {
   }
 }
 
-impl fmt::Display for Lambda {
+impl fmt::Display for LTerm {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Variable(x) => write!(f, "{}", x),
@@ -180,7 +180,7 @@ impl fmt::Display for Lambda {
   }
 }
 
-impl fmt::Debug for Lambda {
+impl fmt::Debug for LTerm {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Variable(x) => write!(f, "Variable({})", x),

@@ -1,19 +1,23 @@
 mod lambda;
+mod lambdabar_mu;
 mod read;
 
 use lambda::*;
+use lambdabar_mu::*;
 
 fn main() {
-    println!("λ-calculus head reduction machine");
+    //println!("λ-calculus head reduction machine");
+    //println!("please input λ-term");
     //println!("λμ-calculus");
-    //println!("λ̅μ-calculus");
+    println!("λ̅μ-calculus");
+    println!("please input λ̅μ-term");
     //println!("λ̅μμ̃-calculus");
-    println!("please input λ-term");
 
     let s: String = read::read();
 
-    let e = Lambda::new(s);
+    let e = LbMCommand::new(s);
 
     println!("");
-    e.reduction();
+    println!("{}", e);
+    //e.reduction();
 }
