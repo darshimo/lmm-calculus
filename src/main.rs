@@ -6,10 +6,10 @@ use lambda::*;
 use lambdabar_mu::*;
 
 fn main() {
-    //println!("λ-calculus head reduction machine");
+    //println!("head reduction machine in λ-calculus");
     //println!("please input λ-term");
     //println!("λμ-calculus");
-    println!("λ̅μ-calculus");
+    println!("head reduction machine in λ̅μ-calculus");
     println!("please input λ̅μ-term");
     //println!("λ̅μμ̃-calculus");
 
