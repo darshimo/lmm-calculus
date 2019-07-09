@@ -32,7 +32,7 @@ In reduction process, variable names are changed properly in order to avoid *var
 ```
 $ cargo run
 λ-calculus head reduction machine
-please input lambda-term
+please input λ-term
 (λx.λy.x y)(λz.z)(λw.w)
 
 (λx. λy. x y) (λz. z) (λw. w)
