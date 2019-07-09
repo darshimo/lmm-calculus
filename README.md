@@ -1,9 +1,9 @@
-# Reduction Machine in λ-calculus
+# Reduction Machine in λ̅μ-calculus
 <!-- # Reduction Machine in λ̅μμ̃-calculus-->
 
 ## Overview
 
-head reduction machine in λ-calculus.
+head reduction machine in λ̅μ-calculus.
 
 ## Usage
 
@@ -12,15 +12,22 @@ $ cd lmm-calculus
 $ cargo run
 ```
 
-After this, please input λ-term to reduce.
+After this, please input λ̅μ-term to reduce.
 
-## Grammar of λ-term
+## Syntax of λ̅μ-calculus
 
 ```
-t ::=               terms
-      x             variable
-      λx.t          abstraction
-      t t           application
+c ::=               Commands
+      ⟨v|E⟩
+
+E ::=               Contexts
+      α
+      v⋅E
+
+v ::=               Terms
+      x
+      μβ.c
+      λx.v
 ```
 
 Note that consecutive characters are regarded as a token. You should put whitespace between separate variables.
@@ -31,14 +38,14 @@ In reduction process, variable names are changed properly in order to avoid *var
 
 ```
 $ cargo run
-λ-calculus head reduction machine
-please input λ-term
-(λx.λy.x y)(λz.z)(λw.w)
+head reduction machine in λ̅μ-calculus
+please input λ̅μ-term
+⟨λx.μβ.⟨x|β⟩|λy.y⋅z⋅α⟩
 
-(λx. λy. x y) (λz. z) (λw. w)
-(λx₁. (λz. z) x₁) (λw. w)
-(λx₂. x₂) (λw. w)
-λw. w
+  ⟨λx.μβ.⟨x|β⟩|λy.y⋅z⋅α⟩
+→ ⟨μβ.⟨λy.y|β⟩|z⋅α⟩
+→ ⟨λy.y|z⋅α⟩
+→ ⟨z|α⟩
 ```
 
 ## Requirement
