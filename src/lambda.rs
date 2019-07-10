@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use std::fmt;
 
 use LTerm::{Abstraction, Application, Variable};
-use RedType::{CBN, CBVL, CBVR};
+use RedType::{CBN, CBVR};
 
 pub enum LTerm {
   Variable(String),
