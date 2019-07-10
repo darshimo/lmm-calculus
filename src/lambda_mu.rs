@@ -56,29 +56,34 @@ impl LMCommand {
     }
   }
 
-  fn step(&self) -> Option<LMCommand> {
-    /*
-    if let Application(t1, t2) = self {
-      if t1.is_abstraction() {
-        if t2.is_abstraction() {
-          t1.application(t2)
-        } else {
-          match t2.step() {
-            None => None,
-            Some(t22) => Some(Application(t1.clone(), Box::new(t22.clone()))),
-          }
-        }
-      } else {
-        match t1.step() {
-          None => None,
-          Some(t11) => Some(Application(Box::new(t11.clone()), t2.clone())),
-        }
-      }
+  fn replacement_subterm(&self, beta: &String, alpha: &String, n: &LMTerm) -> LMCommand {
+    let Command(gamma, m) = self;
+    if beta == gamma {
+      Command(
+        alpha.clone(),
+        Box::new(Application(
+          Box::new(m.replacement_subterm(beta, alpha, n)),
+          Box::new(n.clone()),
+        )),
+      )
     } else {
-      None
+      Command(
+        gamma.clone(),
+        Box::new(m.replacement_subterm(beta, alpha, n)),
+      )
     }
-    */
-    None
+  }
+
+  fn step(&self) -> Option<LMCommand> {
+    let Command(alpha, m) = self;
+    if let MAbstraction(beta, c) = m.unbox() {
+      Some(c.substitution_cvariable(beta, alpha))
+    } else {
+      match m.step() {
+        Some(n) => Some(Command(alpha.clone(), Box::new(n.clone()))),
+        None => None,
+      }
+    }
   }
 
   pub fn reduction(&self) -> LMCommand {
@@ -121,6 +126,10 @@ impl fmt::Debug for LMCommand {
 }
 
 impl LMTerm {
+  fn unbox(&self) -> &LMTerm {
+    self
+  }
+
   fn parser(q: &mut VecDeque<String>, in_parentheses: bool) -> LMTerm {
     let mut tmp: Option<LMTerm> = None;
     while let Some(s) = q.pop_front() {
@@ -256,15 +265,54 @@ impl LMTerm {
       ),
     }
   }
-  /*
-  fn application(&self, v2: &LMTerm) -> Option<LMTerm> {
-    if let Abstraction(x, t12) = self {
-      Some(t12.substitution(x, v2))
+
+  fn replacement_subterm(&self, beta: &String, alpha: &String, n: &LMTerm) -> LMTerm {
+    match self {
+      Variable(_) => self.clone(),
+      LAbstraction(x, m) => {
+        let tmp = generate_tvariable();
+        LAbstraction(
+          tmp.clone(),
+          Box::new(
+            m.substitution_term(x, &Variable(tmp.clone()))
+              .replacement_subterm(beta, alpha, n),
+          ),
+        )
+      }
+      MAbstraction(gamma, c) => {
+        let tmp = generate_cvariable();
+        MAbstraction(
+          tmp.clone(),
+          Box::new(
+            c.substitution_cvariable(gamma, &tmp)
+              .replacement_subterm(beta, alpha, n),
+          ),
+        )
+      }
+      Application(m1, m2) => Application(
+        Box::new(m1.replacement_subterm(beta, alpha, n)),
+        Box::new(m2.replacement_subterm(beta, alpha, n)),
+      ),
+    }
+  }
+
+  fn step(&self) -> Option<LMTerm> {
+    if let Application(m1, m2) = self {
+      match m1.unbox() {
+        LAbstraction(x, m) => Some(m.substitution_term(x, m2)),
+        MAbstraction(beta, c) => Some(MAbstraction(
+          beta.clone(),
+          Box::new(c.replacement_subterm(beta, beta, m2)),
+        )),
+        _ => match m1.step() {
+          Some(n1) => Some(Application(Box::new(n1.clone()), m2.clone())),
+          None => None,
+        },
+      }
     } else {
       None
     }
   }
-  */
 }
 
 impl Clone for LMTerm {
