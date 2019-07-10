@@ -16,18 +16,18 @@ impl LTerm {
     LTerm::parser(&mut q, false)
   }
 
-  fn parser(q: &mut VecDeque<String>, in_abst: bool) -> LTerm {
+  fn parser(q: &mut VecDeque<String>, in_parentheses: bool) -> LTerm {
     let mut tmp: Option<LTerm> = None;
     while let Some(s) = q.pop_front() {
       if s == " " {
       } else if s == "(" {
-        let tmp2 = LTerm::parser(q, false);
+        let tmp2 = LTerm::parser(q, true);
         match tmp {
           None => tmp = Some(tmp2),
           Some(t) => tmp = Some(Application(Box::new(t), Box::new(tmp2))),
         }
       } else if s == ")" {
-        if in_abst {
+        if !in_parentheses {
           q.push_front(String::from(")"));
         }
         return tmp.expect("panic");
@@ -37,7 +37,7 @@ impl LTerm {
         if dot != "." {
           panic!("is not dot");
         }
-        let t = LTerm::parser(q, true);
+        let t = LTerm::parser(q, false);
         let tmp2 = Abstraction(v, Box::new(t));
         match tmp {
           None => tmp = Some(tmp2),
