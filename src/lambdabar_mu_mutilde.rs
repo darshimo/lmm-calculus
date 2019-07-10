@@ -6,6 +6,8 @@ use LbMMtCommand::Command;
 use LbMMtContext::{CStack, CVariable, MtAbstraction};
 use LbMMtTerm::{LAbstraction, MAbstraction, TVariable};
 
+use crate::lambda_mu::*;
+
 pub enum LbMMtCommand {
   Command(Box<LbMMtTerm>, Box<LbMMtContext>),
 }
@@ -103,20 +105,6 @@ impl LbMMtCommand {
     tmp
   }
 
-  fn to(v0: &LbMMtTerm, e0: &LbMMtContext) -> LbMMtCommand {
-    match v0 {
-      LAbstraction(x, v1) => match e0 {
-        CStack(v2, e) => Command(Box::new(v1.substitution_term(x, v2)), e.clone()),
-        _ => {
-          panic!("panic");
-        }
-      },
-      _ => {
-        panic!("panic");
-      }
-    }
-  }
-
   fn to_quote(v0: &LbMMtTerm, e0: &LbMMtContext) -> LbMMtCommand {
     match v0 {
       LAbstraction(x, v1) => match e0 {
@@ -159,6 +147,37 @@ impl LbMMtCommand {
         panic!("panic");
       }
     }
+  }
+
+  pub fn translate_n(c: &LMCommand) -> LbMMtCommand {
+    let LMCommand::Command(alpha, m) = c;
+    LbMMtCommand::translate_n_sub(m, &LbMMtContext::CVariable(alpha.clone()))
+  }
+
+  fn translate_n_sub(t: &LMTerm, e: &LbMMtContext) -> LbMMtCommand {
+    match t {
+      LMTerm::Application(m, n) => {
+        let n_n = LbMMtTerm::translate_n(n);
+        LbMMtCommand::translate_n_sub(m, &CStack(Box::new(n_n), Box::new(e.clone())))
+      }
+      _ => Command(Box::new(LbMMtTerm::translate_n(t)), Box::new(e.clone())),
+    }
+  }
+
+  pub fn translate_l2r(c: &LMCommand) -> LbMMtCommand {
+    let LMCommand::Command(alpha, m) = c;
+    Command(
+      Box::new(LbMMtTerm::translate_l2r(m)),
+      Box::new(CVariable(alpha.clone())),
+    )
+  }
+
+  pub fn translate_r2l(c: &LMCommand) -> LbMMtCommand {
+    let LMCommand::Command(alpha, m) = c;
+    Command(
+      Box::new(LbMMtTerm::translate_r2l(m)),
+      Box::new(CVariable(alpha.clone())),
+    )
   }
 }
 
@@ -397,6 +416,65 @@ impl LbMMtTerm {
             ),
           )
         }
+      }
+    }
+  }
+
+  fn translate_n(t: &LMTerm) -> LbMMtTerm {
+    match t {
+      LMTerm::Variable(x) => TVariable(x.clone()),
+      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_n(m))),
+      LMTerm::MAbstraction(beta, c) => {
+        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_n(c)))
+      }
+      LMTerm::Application(_, _) => {
+        let tmp = generate_cvariable();
+        MAbstraction(
+          tmp.clone(),
+          Box::new(LbMMtCommand::translate_n_sub(t, &CVariable(tmp))),
+        )
+      }
+    }
+  }
+
+  fn translate_l2r(t: &LMTerm) -> LbMMtTerm {
+    match t {
+      LMTerm::Variable(x) => TVariable(x.clone()),
+      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_n(m))),
+      LMTerm::MAbstraction(beta, c) => {
+        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_n(c)))
+      }
+      LMTerm::Application(m, n) => {
+        let tmp = generate_cvariable();
+        let m2 = LbMMtTerm::translate_l2r(m);
+        let n2 = LbMMtTerm::translate_l2r(n);
+        let e = CStack(Box::new(n2), Box::new(CVariable(tmp.clone())));
+        let c = Command(Box::new(m2), Box::new(e));
+        MAbstraction(tmp.clone(), Box::new(c))
+      }
+    }
+  }
+
+  fn translate_r2l(t: &LMTerm) -> LbMMtTerm {
+    match t {
+      LMTerm::Variable(x) => TVariable(x.clone()),
+      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_n(m))),
+      LMTerm::MAbstraction(beta, c) => {
+        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_n(c)))
+      }
+      LMTerm::Application(m, n) => {
+        let x = generate_tvariable();
+        let alpha = generate_cvariable();
+        let m2 = LbMMtTerm::translate_r2l(m);
+        let n2 = LbMMtTerm::translate_r2l(n);
+        let e1 = CStack(
+          Box::new(TVariable(x.clone())),
+          Box::new(CVariable(alpha.clone())),
+        );
+        let c1 = Command(Box::new(m2), Box::new(e1));
+        let e2 = MtAbstraction(x.clone(), Box::new(c1));
+        let c2 = Command(Box::new(n2), Box::new(e2));
+        MAbstraction(alpha.clone(), Box::new(c2))
       }
     }
   }
