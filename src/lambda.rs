@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use std::fmt;
 
 use LTerm::{Abstraction, Application, Variable};
+use RedType::{CBN, CBVL, CBVR};
 
 pub enum LTerm {
   Variable(String),
@@ -10,10 +11,20 @@ pub enum LTerm {
   Application(Box<LTerm>, Box<LTerm>),
 }
 
+pub enum RedType {
+  CBN,
+  CBVL,
+  CBVR,
+}
+
 impl LTerm {
   pub fn new(s: String) -> LTerm {
     let mut q = lexer(s, " λ.()");
     LTerm::parser(&mut q, false)
+  }
+
+  fn unbox(&self) -> &LTerm {
+    self
   }
 
   fn parser(q: &mut VecDeque<String>, in_parentheses: bool) -> LTerm {
@@ -97,29 +108,38 @@ impl LTerm {
     }
   }
 
-  fn application(&self, v2: &LTerm) -> Option<LTerm> {
-    if let Abstraction(x, t12) = self {
-      Some(t12.substitution(x, v2))
-    } else {
-      None
-    }
-  }
-
-  fn step(&self) -> Option<LTerm> {
+  fn step(&self, rt: &RedType) -> Option<LTerm> {
     if let Application(t1, t2) = self {
-      if t1.is_abstraction() {
-        if t2.is_abstraction() {
-          t1.application(t2)
-        } else {
-          match t2.step() {
-            None => None,
-            Some(t22) => Some(Application(t1.clone(), Box::new(t22.clone()))),
-          }
+      if let Abstraction(x, t12) = t1.unbox() {
+        match rt {
+          CBN => Some(t12.substitution(x, t2)),
+          _ => match t2.step(rt) {
+            Some(v2) => Some(Application(t1.clone(), Box::new(v2))),
+            None => {
+              if t2.is_variable() || t2.is_abstraction() {
+                Some(t12.substitution(x, t2))
+              } else {
+                None
+              }
+            }
+          },
         }
       } else {
-        match t1.step() {
-          None => None,
-          Some(t11) => Some(Application(Box::new(t11.clone()), t2.clone())),
+        match rt {
+          CBVR => match t2.step(rt) {
+            Some(v2) => Some(Application(t1.clone(), Box::new(v2))),
+            _ => match t1.step(rt) {
+              Some(v1) => Some(Application(Box::new(v1), t2.clone())),
+              _ => None,
+            },
+          },
+          _ => match t1.step(rt) {
+            Some(v1) => Some(Application(Box::new(v1), t2.clone())),
+            _ => match t2.step(rt) {
+              Some(v2) => Some(Application(t1.clone(), Box::new(v2))),
+              _ => None,
+            },
+          },
         }
       }
     } else {
@@ -127,11 +147,11 @@ impl LTerm {
     }
   }
 
-  pub fn reduction(&self) -> LTerm {
+  pub fn reduction(&self, rt: &RedType) -> LTerm {
     let mut tmp = self.clone();
     println!("  {}", tmp);
     loop {
-      match tmp.step() {
+      match tmp.step(&rt) {
         None => {
           break;
         }
