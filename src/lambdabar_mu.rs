@@ -1,4 +1,3 @@
-use std::char;
 use std::collections::VecDeque;
 use std::fmt;
 
@@ -7,6 +6,7 @@ use LbMContext::{CStack, CVariable};
 use LbMTerm::{LAbstraction, MAbstraction, TVariable};
 
 use crate::generator::*;
+use crate::lexer::*;
 
 pub enum LbMCommand {
   Command(Box<LbMTerm>, Box<LbMContext>),
@@ -351,6 +351,7 @@ impl fmt::Debug for LbMTerm {
   }
 }
 
+/*
 fn lexer(s: String, sep: &str) -> VecDeque<String> {
   let alphabets: Vec<char> = s.chars().collect();
   let l = alphabets.len();
@@ -387,3 +388,4 @@ fn lexer(s: String, sep: &str) -> VecDeque<String> {
 
   ret
 }
+*/

@@ -1,4 +1,3 @@
-use std::char;
 use std::collections::VecDeque;
 use std::fmt;
 
@@ -9,6 +8,7 @@ use LbMMtCompTerm::{MAbstraction, TLAbstraction, TStack, TVariable};
 use crate::lambda_mu::*;
 //use crate::lambdabar_mu_mutilde::*;
 use crate::generator::*;
+use crate::lexer::*;
 
 pub enum LbMMtCompCommand {
   Command(Box<LbMMtCompTerm>, Box<LbMMtCompContext>),
@@ -580,6 +580,7 @@ impl fmt::Debug for LbMMtCompTerm {
   }
 }
 
+/*
 fn lexer(s: String, sep: &str) -> VecDeque<String> {
   let alphabets: Vec<char> = s.chars().collect();
   let l = alphabets.len();
@@ -620,3 +621,4 @@ fn lexer(s: String, sep: &str) -> VecDeque<String> {
 
   ret
 }
+*/

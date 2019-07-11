@@ -6,6 +6,7 @@ use LTerm::{Abstraction, Application, Variable};
 use RedType::{CBN, CBVR};
 
 use crate::generator::*;
+use crate::lexer::*;
 
 pub enum LTerm {
   Variable(String),
@@ -212,8 +213,7 @@ impl fmt::Debug for LTerm {
   }
 }
 
-
-
+/*
 fn lexer(s: String, sep: &str) -> VecDeque<String> {
   let alphabets: Vec<char> = s.chars().collect();
   let l = alphabets.len();
@@ -248,3 +248,4 @@ fn lexer(s: String, sep: &str) -> VecDeque<String> {
 
   ret
 }
+*/
