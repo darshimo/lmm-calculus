@@ -7,7 +7,7 @@ use LbMMtCompContext::{CLAbstraction, CStack, CVariable, MtAbstraction};
 use LbMMtCompTerm::{MAbstraction, TLAbstraction, TStack, TVariable};
 
 use crate::lambda_mu::*;
-use crate::lambdabar_mu_mutilde::*;
+//use crate::lambdabar_mu_mutilde::*;
 
 pub enum LbMMtCompCommand {
   Command(Box<LbMMtCompTerm>, Box<LbMMtCompContext>),
