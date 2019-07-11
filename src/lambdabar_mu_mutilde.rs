@@ -8,6 +8,7 @@ use LbMMtTerm::{LAbstraction, MAbstraction, TVariable};
 
 use crate::generator::*;
 use crate::lambda_mu::*;
+use crate::lexer::*;
 
 pub enum LbMMtCommand {
   Command(Box<LbMMtTerm>, Box<LbMMtContext>),
@@ -509,45 +510,4 @@ impl fmt::Debug for LbMMtTerm {
       MAbstraction(x, c) => write!(f, "MAbstraction({:?}, {:?})", x, c),
     }
   }
-}
-
-fn lexer(s: String, sep: &str) -> VecDeque<String> {
-  let alphabets: Vec<char> = s.chars().collect();
-  let l = alphabets.len();
-  let sep: Vec<char> = sep.chars().collect();
-
-  let mut tmp: Vec<char> = vec![];
-
-  let mut ret: VecDeque<String> = VecDeque::new();
-
-  let c = alphabets[0];
-  if sep.contains(&c) {
-    ret.push_back(c.to_string());
-  } else {
-    tmp.push(c);
-  }
-
-  for i in 1..l {
-    let c = alphabets[i];
-    if sep.contains(&c) {
-      if !tmp.is_empty() {
-        ret.push_back(tmp.into_iter().collect());
-        tmp = vec![];
-      }
-      if c != ' ' && c != '(' && c != ')' {
-        ret.push_back(c.to_string());
-      }
-    } else if c == '̃' {
-      let mut last = ret.pop_back().expect("panic");
-      last.push(c);
-      ret.push_back(last);
-    } else {
-      tmp.push(c);
-    }
-  }
-  if !tmp.is_empty() {
-    ret.push_back(tmp.into_iter().collect());
-  }
-
-  ret
 }
