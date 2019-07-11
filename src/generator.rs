@@ -14,7 +14,7 @@ pub fn generate_tvariable() -> String {
   while a > 0 {
     let b = a % 10;
     a /= 10;
-    s = format!("{}{}", char::from_u32(8320 + b).unwrap(), s);
+    s = format!("{}{}", char::from_u32(8320 + b).expect("panic"), s);
   }
 
   format!("x{}", s)
@@ -34,7 +34,7 @@ pub fn generate_cvariable() -> String {
   while a > 0 {
     let b = a % 10;
     a /= 10;
-    s = format!("{}{}", char::from_u32(8320 + b).unwrap(), s);
+    s = format!("{}{}", char::from_u32(8320 + b).expect("panic"), s);
   }
 
   format!("α{}", s)
@@ -54,7 +54,7 @@ pub fn generate_kvariable() -> String {
   while a > 0 {
     let b = a % 10;
     a /= 10;
-    s = format!("{}{}", char::from_u32(8320 + b).unwrap(), s);
+    s = format!("{}{}", char::from_u32(8320 + b).expect("panic"), s);
   }
 
   format!("k{}", s)
