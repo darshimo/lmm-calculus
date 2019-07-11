@@ -26,17 +26,3 @@ pub fn lexer(s: String, sep: &str) -> VecDeque<String> {
 
   ret
 }
-
-fn remove_head_whitespace(s: &String) -> String {
-  let mut vd: VecDeque<char> = s.chars().collect();
-
-  loop {
-    let c = vd.get(0).expect("empty string.");
-    if *c == ' ' {
-      vd.pop_front();
-    } else {
-      break;
-    }
-  }
-  vd.into_iter().collect::<String>()
-}
