@@ -1,4 +1,3 @@
-use std::char;
 use std::collections::VecDeque;
 use std::fmt;
 
