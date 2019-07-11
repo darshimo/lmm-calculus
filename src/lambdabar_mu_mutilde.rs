@@ -440,9 +440,9 @@ impl LbMMtTerm {
   fn translate_l2r(t: &LMTerm) -> LbMMtTerm {
     match t {
       LMTerm::Variable(x) => TVariable(x.clone()),
-      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_n(m))),
+      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_l2r(m))),
       LMTerm::MAbstraction(beta, c) => {
-        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_n(c)))
+        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_l2r(c)))
       }
       LMTerm::Application(m, n) => {
         let tmp = generate_cvariable();
@@ -458,9 +458,9 @@ impl LbMMtTerm {
   fn translate_r2l(t: &LMTerm) -> LbMMtTerm {
     match t {
       LMTerm::Variable(x) => TVariable(x.clone()),
-      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_n(m))),
+      LMTerm::LAbstraction(x, m) => LAbstraction(x.clone(), Box::new(LbMMtTerm::translate_r2l(m))),
       LMTerm::MAbstraction(beta, c) => {
-        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_n(c)))
+        MAbstraction(beta.clone(), Box::new(LbMMtCommand::translate_r2l(c)))
       }
       LMTerm::Application(m, n) => {
         let x = generate_tvariable();
