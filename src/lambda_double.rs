@@ -1,4 +1,3 @@
-use std::char;
 use std::collections::VecDeque;
 use std::fmt;
 
@@ -7,6 +6,7 @@ use RedType::{CBN, CBVR};
 
 use crate::generator::*;
 use crate::lambdabar_mu_mutilde_comp::*;
+use crate::lexer::*;
 
 pub enum LDTerm {
   Variable(String),
@@ -114,6 +114,27 @@ impl LDTerm {
     }
   }
 
+  fn is_dabstraction(&self) -> bool {
+    match self {
+      DAbstraction(_, _, _) => true,
+      _ => false,
+    }
+  }
+
+  fn is_application(&self) -> bool {
+    match self {
+      Application(_, _) => true,
+      _ => false,
+    }
+  }
+
+  fn is_pair(&self) -> bool {
+    match self {
+      Pair(_, _) => true,
+      _ => false,
+    }
+  }
+
   fn substitution(&self, x: &String, v: &LDTerm) -> LDTerm {
     match self {
       Variable(y) => {
@@ -170,12 +191,26 @@ impl LDTerm {
           _ => match t2.step(rt) {
             Some(v2) => Some(Application(t1.clone(), Box::new(v2))),
             None => {
-              if t2.is_variable() || t2.is_abstraction() {
+              if !t2.is_application() {
                 Some(t12.substitution(x, t2))
               } else {
                 None
               }
             }
+          },
+        }
+      } else if let DAbstraction(x, beta, t12) = t1.unbox() {
+        match rt {
+          CBN => {
+            if let Pair(t21, t22) = t2.unbox() {
+              Some(t12.substitution(x, t21).substitution(beta, t22))
+            } else {
+              None
+            }
+          }
+          _ => match t2.step(rt) {
+            Some(v2) => Some(Application(t1.clone(), Box::new(v2))),
+            None => None,
           },
         }
       } else {
@@ -218,31 +253,90 @@ impl LDTerm {
     tmp
   }
 
-  /*
-  pub fn back_r2l_command(c: &LbMMtCompCommand) -> LDTerm {
+  pub fn translate_command_cbv(c: &LbMMtCompCommand) -> LDTerm {
     let LbMMtCompCommand::Command(v, e) = c;
     Application(
-      Box::new(LDTerm::back_r2l_term(v)),
-      Box::new(LDTerm::back_r2l_context(e)),
+      Box::new(LDTerm::translate_term_cbv(v)),
+      Box::new(LDTerm::translate_context_cbv(e)),
     )
   }
 
-  fn back_r2l_context(e: &LbMMtCompContext) -> LDTerm {
+  fn translate_context_cbv(e: &LbMMtCompContext) -> LDTerm {
     match e {
       LbMMtCompContext::CVariable(alpha) => Variable(alpha.clone()),
       LbMMtCompContext::MtAbstraction(x, c) => {
-        Abstraction(x.clone(), Box::new(LDTerm::back_r2l_command(c)))
+        Abstraction(x.clone(), Box::new(LDTerm::translate_command_cbv(c)))
       }
-      LbMMtCompContext::CStack(v, e) => {
+      LbMMtCompContext::CStack(v, e1) => {
         let k = generate_kvariable();
         let x = generate_tvariable();
+        let t1 = Pair(
+          Box::new(Variable(x.clone())),
+          Box::new(LDTerm::translate_context_cbv(e1)),
+        );
+        let t2 = Application(Box::new(Variable(k.clone())), Box::new(t1));
+        let t3 = Abstraction(x.clone(), Box::new(t2));
+        let t4 = Application(Box::new(LDTerm::translate_term_cbv(v)), Box::new(t3));
+        Abstraction(k.clone(), Box::new(t4))
       }
-      LbMMtCompContext::CLAbstraction(beta, e) => {}
+      LbMMtCompContext::CLAbstraction(beta, e) => {
+        let y = generate_tvariable();
+        let t1 = Application(
+          Box::new(LDTerm::translate_context_cbv(e)),
+          Box::new(Variable(y.clone())),
+        );
+        DAbstraction(y.clone(), beta.clone(), Box::new(t1))
+      }
     }
   }
 
-  fn back_r2l_term(v: &LbMMtCompTerm) -> LDTerm {}
-  */
+  fn translate_term_cbv(v: &LbMMtCompTerm) -> LDTerm {
+    match v {
+      LbMMtCompTerm::TVariable(x) => {
+        let k = generate_kvariable();
+        let t1 = Application(Box::new(Variable(k.clone())), Box::new(Variable(x.clone())));
+        Abstraction(k.clone(), Box::new(t1))
+      }
+      LbMMtCompTerm::MAbstraction(beta, c) => {
+        Abstraction(beta.clone(), Box::new(LDTerm::translate_command_cbv(c)))
+      }
+      LbMMtCompTerm::TLAbstraction(x, v) => {
+        let k = generate_kvariable();
+        let beta = generate_cvariable();
+        let t1 = Application(
+          Box::new(LDTerm::translate_term_cbv(v)),
+          Box::new(Variable(beta.clone())),
+        );
+        let t2 = DAbstraction(x.clone(), beta.clone(), Box::new(t1));
+        let t3 = Application(Box::new(Variable(k.clone())), Box::new(t2));
+        Abstraction(k.clone(), Box::new(t3))
+      }
+      LbMMtCompTerm::TStack(e, v) => {
+        let k = generate_kvariable();
+        let y = generate_tvariable();
+        let t1 = Pair(
+          Box::new(Variable(y.clone())),
+          Box::new(LDTerm::translate_context_cbv(e)),
+        );
+        let t2 = Application(Box::new(Variable(k.clone())), Box::new(t1));
+        let t3 = Abstraction(y.clone(), Box::new(t2));
+        let t4 = Application(Box::new(LDTerm::translate_term_cbv(v)), Box::new(t3));
+        Abstraction(k.clone(), Box::new(t4))
+      }
+    }
+  }
+
+  pub fn translate_command_cbn(c: &LbMMtCompCommand) -> LDTerm {
+    LDTerm::translate_command_cbv(&c.reverse())
+  }
+
+  fn translate_context_cbn(e: &LbMMtCompContext) -> LDTerm {
+    LDTerm::translate_term_cbv(&e.reverse())
+  }
+
+  fn translate_term_cbn(v: &LbMMtCompTerm) -> LDTerm {
+    LDTerm::translate_context_cbv(&v.reverse())
+  }
 }
 
 impl Clone for LDTerm {
@@ -264,7 +358,7 @@ impl fmt::Display for LDTerm {
       Abstraction(x, t) => write!(f, "λ{}. {}", x, t),
       Application(t1, t2) => {
         let mut s1: String;
-        if t1.is_abstraction() {
+        if t1.is_abstraction() || t1.is_dabstraction() {
           s1 = format!("({})", t1);
         } else {
           s1 = format!("{}", t1);
@@ -275,7 +369,6 @@ impl fmt::Display for LDTerm {
         } else {
           s2 = format!("({})", t2);
         }
-
         write!(f, "{} {}", s1, s2)
       }
       DAbstraction(x, beta, t) => write!(f, "λ({}, {}). {}", x, beta, t),
@@ -296,6 +389,7 @@ impl fmt::Debug for LDTerm {
   }
 }
 
+/*
 fn lexer(s: String, sep: &str) -> VecDeque<String> {
   let alphabets: Vec<char> = s.chars().collect();
   let l = alphabets.len();
@@ -330,3 +424,4 @@ fn lexer(s: String, sep: &str) -> VecDeque<String> {
 
   ret
 }
+*/
