@@ -1,4 +1,3 @@
-use std::char;
 use std::collections::VecDeque;
 use std::fmt;
 
@@ -6,6 +5,7 @@ use LTerm::{Abstraction, Application, Variable};
 use RedType::{CBN, CBVR};
 
 use crate::generator::*;
+use crate::lambdabar_mu_mutilde_comp::*;
 use crate::lexer::*;
 
 pub enum LTerm {
@@ -165,6 +165,87 @@ impl LTerm {
       }
     }
     tmp
+  }
+
+  pub fn translate_command_cbv(c: &LbMMtCompCommand) -> LTerm {
+    let LbMMtCompCommand::Command(v, e) = c;
+    Application(
+      Box::new(LTerm::translate_term_cbv(v)),
+      Box::new(LTerm::translate_context_cbv(e)),
+    )
+  }
+
+  fn translate_context_cbv(e: &LbMMtCompContext) -> LTerm {
+    match e {
+      LbMMtCompContext::CVariable(alpha) => Variable(alpha.clone()),
+      LbMMtCompContext::MtAbstraction(x, c) => {
+        Abstraction(x.clone(), Box::new(LTerm::translate_command_cbv(c)))
+      }
+      LbMMtCompContext::CStack(v, e1) => {
+        let k = generate_kvariable();
+        let x = generate_tvariable();
+        let t1 = Application(Box::new(Variable(k.clone())), Box::new(Variable(x.clone())));
+        let t2 = Application(Box::new(t1), Box::new(LTerm::translate_context_cbv(e1)));
+        let t3 = Abstraction(x.clone(), Box::new(t2));
+        let t4 = Application(Box::new(LTerm::translate_term_cbv(v)), Box::new(t3));
+        Abstraction(k.clone(), Box::new(t4))
+      }
+      LbMMtCompContext::CLAbstraction(beta, e) => {
+        let y = generate_tvariable();
+        let t1 = Application(
+          Box::new(LTerm::translate_context_cbv(e)),
+          Box::new(Variable(y.clone())),
+        );
+        let t2 = Abstraction(beta.clone(), Box::new(t1));
+        Abstraction(y.clone(), Box::new(t2))
+      }
+    }
+  }
+
+  fn translate_term_cbv(v: &LbMMtCompTerm) -> LTerm {
+    match v {
+      LbMMtCompTerm::TVariable(x) => {
+        let k = generate_kvariable();
+        let t1 = Application(Box::new(Variable(k.clone())), Box::new(Variable(x.clone())));
+        Abstraction(k.clone(), Box::new(t1))
+      }
+      LbMMtCompTerm::MAbstraction(beta, c) => {
+        Abstraction(beta.clone(), Box::new(LTerm::translate_command_cbv(c)))
+      }
+      LbMMtCompTerm::TLAbstraction(x, v) => {
+        let k = generate_kvariable();
+        let beta = generate_cvariable();
+        let t1 = Application(
+          Box::new(LTerm::translate_term_cbv(v)),
+          Box::new(Variable(beta.clone())),
+        );
+        let t2 = Abstraction(beta.clone(), Box::new(t1));
+        let t3 = Abstraction(x.clone(), Box::new(t2));
+        let t4 = Application(Box::new(Variable(k.clone())), Box::new(t3));
+        Abstraction(k.clone(), Box::new(t4))
+      }
+      LbMMtCompTerm::TStack(e, v) => {
+        let k = generate_kvariable();
+        let y = generate_tvariable();
+        let t1 = Application(Box::new(Variable(k.clone())), Box::new(Variable(y.clone())));
+        let t2 = Application(Box::new(t1), Box::new(LTerm::translate_context_cbv(e)));
+        let t3 = Abstraction(y.clone(), Box::new(t2));
+        let t4 = Application(Box::new(LTerm::translate_term_cbv(v)), Box::new(t3));
+        Abstraction(k.clone(), Box::new(t4))
+      }
+    }
+  }
+
+  pub fn translate_command_cbn(c: &LbMMtCompCommand) -> LTerm {
+    LTerm::translate_command_cbv(&c.reverse())
+  }
+
+  fn translate_context_cbn(e: &LbMMtCompContext) -> LTerm {
+    LTerm::translate_term_cbv(&e.reverse())
+  }
+
+  fn translate_term_cbn(v: &LbMMtCompTerm) -> LTerm {
+    LTerm::translate_context_cbv(&v.reverse())
   }
 }
 
