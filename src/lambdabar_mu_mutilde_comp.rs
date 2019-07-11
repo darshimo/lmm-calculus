@@ -1,14 +1,11 @@
-use std::collections::VecDeque;
 use std::fmt;
 
 use LbMMtCompCommand::Command;
 use LbMMtCompContext::{CLAbstraction, CStack, CVariable, MtAbstraction};
 use LbMMtCompTerm::{MAbstraction, TLAbstraction, TStack, TVariable};
 
-use crate::lambda_mu::*;
-//use crate::lambdabar_mu_mutilde::*;
 use crate::generator::*;
-use crate::lexer::*;
+use crate::lambdabar_mu_mutilde::*;
 
 pub enum LbMMtCompCommand {
   Command(Box<LbMMtCompTerm>, Box<LbMMtCompContext>),
@@ -29,29 +26,6 @@ pub enum LbMMtCompContext {
 }
 
 impl LbMMtCompCommand {
-  pub fn new(s: String) -> LbMMtCompCommand {
-    let mut q = lexer(s, " ⟨|⟩⋅λμ.()");
-    LbMMtCompCommand::parser(&mut q)
-  }
-
-  fn parser(q: &mut VecDeque<String>) -> LbMMtCompCommand {
-    let langle = q.pop_front().expect("panic");
-    if langle != "⟨" {
-      panic!("syntax error");
-    }
-    let t = LbMMtCompTerm::parser(q);
-    let vbar = q.pop_front().expect("panic");
-    if vbar != "|" {
-      panic!("syntax error");
-    }
-    let c = LbMMtCompContext::parser(q);
-    let rangle = q.pop_front().expect("panic");
-    if rangle != "⟩" {
-      panic!("syntax error");
-    }
-    Command(Box::new(t), Box::new(c))
-  }
-
   fn substitution_term(&self, x: &String, v: &LbMMtCompTerm) -> LbMMtCompCommand {
     let Command(t, c) = self;
     Command(
@@ -181,19 +155,11 @@ impl LbMMtCompCommand {
     }
   }
 
-  pub fn translate_l2r(c: &LMCommand) -> LbMMtCompCommand {
-    let LMCommand::Command(alpha, m) = c;
+  pub fn from(c: &LbMMtCommand) -> LbMMtCompCommand {
+    let LbMMtCommand::Command(v, e) = c;
     Command(
-      Box::new(LbMMtCompTerm::translate_l2r(m)),
-      Box::new(CVariable(alpha.clone())),
-    )
-  }
-
-  pub fn translate_r2l(c: &LMCommand) -> LbMMtCompCommand {
-    let LMCommand::Command(alpha, m) = c;
-    Command(
-      Box::new(LbMMtCompTerm::translate_r2l(m)),
-      Box::new(CVariable(alpha.clone())),
+      Box::new(LbMMtCompTerm::from(v)),
+      Box::new(LbMMtCompContext::from(e)),
     )
   }
 
@@ -225,46 +191,6 @@ impl fmt::Debug for LbMMtCompCommand {
 }
 
 impl LbMMtCompContext {
-  fn parser(q: &mut VecDeque<String>) -> LbMMtCompContext {
-    let mut s = q.get(0).expect("panic");
-    while s == " " || s == "(" || s == ")" {
-      q.pop_front().expect("panic");
-      s = q.get(0).expect("panic");
-    }
-    if s == "μ̃" {
-      q.pop_front().expect("panic");
-      let v = q.pop_front().expect("panic");
-      let dot = q.pop_front().expect("panic");
-      if dot != "." {
-        panic!("is not dot");
-      }
-      let c = LbMMtCompCommand::parser(q);
-      MtAbstraction(v, Box::new(c))
-    } else if s == "λ" || s == "μ" {
-      let t = LbMMtCompTerm::parser(q);
-      let dot = q.pop_front().expect("panic");
-      if dot != "⋅" {
-        panic!("is not dot");
-      }
-      let c = LbMMtCompContext::parser(q);
-      CStack(Box::new(t), Box::new(c))
-    } else if s == "." || s == "⟨" || s == "⟩" || s == "|" || s == "⋅" {
-      panic!("syntax error");
-    } else {
-      let v = q.pop_front().expect("panic");
-      let dot_or_rangle = q.get(0).expect("panic");
-      if dot_or_rangle == "⋅" {
-        q.pop_front().expect("panic");
-        let c = LbMMtCompContext::parser(q);
-        CStack(Box::new(TVariable(v)), Box::new(c))
-      } else if dot_or_rangle == "⟩" {
-        CVariable(v)
-      } else {
-        panic!("syntax error");
-      }
-    }
-  }
-
   fn is_cstack(&self) -> bool {
     match self {
       CStack(_, _) => true,
@@ -342,6 +268,19 @@ impl LbMMtCompContext {
     }
   }
 
+  pub fn from(e: &LbMMtContext) -> LbMMtCompContext {
+    match e {
+      LbMMtContext::CVariable(alpha) => CVariable(alpha.clone()),
+      LbMMtContext::MtAbstraction(x, c) => {
+        MtAbstraction(x.clone(), Box::new(LbMMtCompCommand::from(c)))
+      }
+      LbMMtContext::CStack(v, e1) => CStack(
+        Box::new(LbMMtCompTerm::from(v)),
+        Box::new(LbMMtCompContext::from(e1)),
+      ),
+    }
+  }
+
   pub fn reverse(&self) -> LbMMtCompTerm {
     match self {
       CVariable(alpha) => TVariable(alpha.clone()),
@@ -386,34 +325,6 @@ impl fmt::Debug for LbMMtCompContext {
 }
 
 impl LbMMtCompTerm {
-  fn parser(q: &mut VecDeque<String>) -> LbMMtCompTerm {
-    let mut s = q.pop_front().expect("panic");
-    while s == " " || s == "(" || s == ")" {
-      s = q.pop_front().expect("panic");
-    }
-    if s == "λ" {
-      let v = q.pop_front().expect("panic");
-      let dot = q.pop_front().expect("panic");
-      if dot != "." {
-        panic!("is not dot");
-      }
-      let t = LbMMtCompTerm::parser(q);
-      TLAbstraction(v, Box::new(t))
-    } else if s == "μ" {
-      let v = q.pop_front().expect("panic");
-      let dot = q.pop_front().expect("panic");
-      if dot != "." {
-        panic!("is not dot");
-      }
-      let c = LbMMtCompCommand::parser(q);
-      MAbstraction(v, Box::new(c))
-    } else if s == "." || s == "⟨" || s == "⟩" || s == "|" || s == "⋅" {
-      panic!("syntax error.");
-    } else {
-      TVariable(s)
-    }
-  }
-
   fn is_tlabstraction(&self) -> bool {
     match self {
       TLAbstraction(_, _) => true,
@@ -491,48 +402,12 @@ impl LbMMtCompTerm {
     }
   }
 
-  fn translate_l2r(t: &LMTerm) -> LbMMtCompTerm {
-    match t {
-      LMTerm::Variable(x) => TVariable(x.clone()),
-      LMTerm::LAbstraction(x, m) => {
-        TLAbstraction(x.clone(), Box::new(LbMMtCompTerm::translate_l2r(m)))
-      }
-      LMTerm::MAbstraction(beta, c) => {
-        MAbstraction(beta.clone(), Box::new(LbMMtCompCommand::translate_l2r(c)))
-      }
-      LMTerm::Application(m, n) => {
-        let tmp = generate_cvariable();
-        let m2 = LbMMtCompTerm::translate_l2r(m);
-        let n2 = LbMMtCompTerm::translate_l2r(n);
-        let e = CStack(Box::new(n2), Box::new(CVariable(tmp.clone())));
-        let c = Command(Box::new(m2), Box::new(e));
-        MAbstraction(tmp.clone(), Box::new(c))
-      }
-    }
-  }
-
-  fn translate_r2l(t: &LMTerm) -> LbMMtCompTerm {
-    match t {
-      LMTerm::Variable(x) => TVariable(x.clone()),
-      LMTerm::LAbstraction(x, m) => {
-        TLAbstraction(x.clone(), Box::new(LbMMtCompTerm::translate_r2l(m)))
-      }
-      LMTerm::MAbstraction(beta, c) => {
-        MAbstraction(beta.clone(), Box::new(LbMMtCompCommand::translate_r2l(c)))
-      }
-      LMTerm::Application(m, n) => {
-        let x = generate_tvariable();
-        let alpha = generate_cvariable();
-        let m2 = LbMMtCompTerm::translate_r2l(m);
-        let n2 = LbMMtCompTerm::translate_r2l(n);
-        let e1 = CStack(
-          Box::new(TVariable(x.clone())),
-          Box::new(CVariable(alpha.clone())),
-        );
-        let c1 = Command(Box::new(m2), Box::new(e1));
-        let e2 = MtAbstraction(x.clone(), Box::new(c1));
-        let c2 = Command(Box::new(n2), Box::new(e2));
-        MAbstraction(alpha.clone(), Box::new(c2))
+  pub fn from(v: &LbMMtTerm) -> LbMMtCompTerm {
+    match v {
+      LbMMtTerm::TVariable(x) => TVariable(x.clone()),
+      LbMMtTerm::LAbstraction(x, v1) => TLAbstraction(x.clone(), Box::new(LbMMtCompTerm::from(v1))),
+      LbMMtTerm::MAbstraction(beta, c) => {
+        MAbstraction(beta.clone(), Box::new(LbMMtCompCommand::from(c)))
       }
     }
   }
