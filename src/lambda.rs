@@ -5,6 +5,8 @@ use std::fmt;
 use LTerm::{Abstraction, Application, Variable};
 use RedType::{CBN, CBVR};
 
+use crate::generator::*;
+
 pub enum LTerm {
   Variable(String),
   Abstraction(String, Box<LTerm>),
@@ -94,7 +96,7 @@ impl LTerm {
         if x == y {
           self.clone()
         } else {
-          let tmp = generate_variable();
+          let tmp = generate_tvariable();
           Abstraction(
             tmp.clone(),
             Box::new(t.substitution(y, &Variable(tmp.clone())).substitution(x, v)),
@@ -210,25 +212,7 @@ impl fmt::Debug for LTerm {
   }
 }
 
-static mut CNT: u32 = 0;
 
-fn generate_variable() -> String {
-  let mut a: u32;
-  unsafe {
-    CNT += 1;
-    a = CNT;
-  }
-
-  let mut s = String::new();
-
-  while a > 0 {
-    let b = a % 10;
-    a /= 10;
-    s = format!("{}{}", char::from_u32(8320 + b).unwrap(), s);
-  }
-
-  format!("x{}", s)
-}
 
 fn lexer(s: String, sep: &str) -> VecDeque<String> {
   let alphabets: Vec<char> = s.chars().collect();
