@@ -5,8 +5,8 @@ use LbMCommand::Command;
 use LbMContext::{CStack, CVariable};
 use LbMTerm::{LAbstraction, MAbstraction, TVariable};
 
-use crate::generator::*;
 use crate::lexer::*;
+use crate::variable::*;
 
 pub enum LbMCommand {
   Command(Box<LbMTerm>, Box<LbMContext>),

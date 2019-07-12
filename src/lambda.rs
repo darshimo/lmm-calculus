@@ -4,9 +4,9 @@ use std::fmt;
 use LTerm::{Abstraction, Application, Variable};
 use RedType::{CBN, CBVR};
 
-use crate::generator::*;
 use crate::lambdabar_mu_mutilde_comp::*;
 use crate::lexer::*;
+use crate::variable::*;
 
 pub enum LTerm {
   Variable(String),
@@ -238,14 +238,6 @@ impl LTerm {
 
   pub fn translate_command_cbn(c: &LbMMtCompCommand) -> LTerm {
     LTerm::translate_command_cbv(&c.reverse())
-  }
-
-  fn translate_context_cbn(e: &LbMMtCompContext) -> LTerm {
-    LTerm::translate_term_cbv(&e.reverse())
-  }
-
-  fn translate_term_cbn(v: &LbMMtCompTerm) -> LTerm {
-    LTerm::translate_context_cbv(&v.reverse())
   }
 }
 

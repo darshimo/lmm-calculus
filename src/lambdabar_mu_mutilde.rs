@@ -5,9 +5,9 @@ use LbMMtCommand::Command;
 use LbMMtContext::{CStack, CVariable, MtAbstraction};
 use LbMMtTerm::{LAbstraction, MAbstraction, TVariable};
 
-use crate::generator::*;
 use crate::lambda_mu::*;
 use crate::lexer::*;
+use crate::variable::*;
 
 pub enum LbMMtCommand {
   Command(Box<LbMMtTerm>, Box<LbMMtContext>),

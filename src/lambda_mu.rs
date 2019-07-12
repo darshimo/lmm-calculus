@@ -4,8 +4,8 @@ use std::fmt;
 use LMCommand::Command;
 use LMTerm::{Application, LAbstraction, MAbstraction, Variable};
 
-use crate::generator::*;
 use crate::lexer::*;
+use crate::variable::*;
 
 pub enum LMCommand {
   Command(String, Box<LMTerm>),
