@@ -147,7 +147,7 @@ impl LDTerm {
       Abstraction(y, t) => {
         if x == y {
           self.clone()
-        } else {
+        } else if v.contains(y) {
           let tmp: String;
           if y.starts_with("x") {
             tmp = generate_tvariable();
@@ -160,6 +160,8 @@ impl LDTerm {
             tmp.clone(),
             Box::new(t.substitution(y, &Variable(tmp.clone())).substitution(x, v)),
           )
+        } else {
+          Abstraction(y.clone(), Box::new(t.substitution(x, v)))
         }
       }
       Application(t1, t2) => Application(
@@ -169,7 +171,26 @@ impl LDTerm {
       DAbstraction(y, beta, t) => {
         if x == y || x == beta {
           self.clone()
+        } else if y == beta {
+          panic!("panic")
         } else {
+          let y2: String;
+          let beta2: String;
+          let mut t2: LDTerm = t.unbox().clone();
+          if v.contains(y) {
+            y2 = generate_tvariable();
+            t2 = t2.substitution(y, &Variable(y2.clone()));
+          } else {
+            y2 = y.clone();
+          }
+          if v.contains(beta) {
+            beta2 = generate_cvariable();
+            t2 = t2.substitution(beta, &Variable(beta2.clone()));
+          } else {
+            beta2 = beta.clone();
+          }
+          DAbstraction(y2, beta2, Box::new(t2.substitution(x, v)))
+          /*
           let ttmp = generate_tvariable();
           let ctmp = generate_cvariable();
           DAbstraction(
@@ -181,6 +202,7 @@ impl LDTerm {
                 .substitution(x, v),
             ),
           )
+          */
         }
       }
       Pair(t1, t2) => Pair(
@@ -335,6 +357,16 @@ impl LDTerm {
 
   pub fn translate_command_cbn(c: &LbMMtCompCommand) -> LDTerm {
     LDTerm::translate_command_cbv(&c.reverse())
+  }
+
+  fn contains(&self, s: &String) -> bool {
+    match self {
+      Variable(y) => s == y,
+      Abstraction(y, t) => y != s && t.contains(s),
+      Application(t1, t2) => t1.contains(s) || t2.contains(s),
+      DAbstraction(y, beta, t) => y != s && beta != s && t.contains(s),
+      Pair(t1, t2) => t1.contains(s) || t2.contains(s),
+    }
   }
 }
 
