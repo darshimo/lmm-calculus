@@ -361,25 +361,25 @@ impl LDTerm {
     LDTerm::translate_command_cbv(&c.reverse())
   }
 
-  pub fn translate_cps_l2r_cbn(c: &LMCommand) -> LDTerm {
+  pub fn lafont_hofmann_streicher_translation(c: &LMCommand) -> LDTerm {
     let c1 = LbMMtCommand::translate_l2r(c);
     let c2 = LbMMtCompCommand::from(&c1);
     LDTerm::translate_command_cbn(&c2)
   }
 
-  pub fn translate_cps_l2r_cbv(c: &LMCommand) -> LDTerm {
+  pub fn plotkin_l2r_translation(c: &LMCommand) -> LDTerm {
     let c1 = LbMMtCommand::translate_l2r(c);
     let c2 = LbMMtCompCommand::from(&c1);
     LDTerm::translate_command_cbv(&c2)
   }
 
-  pub fn translate_cps_r2l_cbn(c: &LMCommand) -> LDTerm {
+  pub fn lafont_hofmann_streicher_translation2(c: &LMCommand) -> LDTerm {
     let c1 = LbMMtCommand::translate_r2l(c);
     let c2 = LbMMtCompCommand::from(&c1);
     LDTerm::translate_command_cbn(&c2)
   }
 
-  pub fn translate_cps_r2l_cbv(c: &LMCommand) -> LDTerm {
+  pub fn plotkin_r2l_translation(c: &LMCommand) -> LDTerm {
     let c1 = LbMMtCommand::translate_r2l(c);
     let c2 = LbMMtCompCommand::from(&c1);
     LDTerm::translate_command_cbv(&c2)
