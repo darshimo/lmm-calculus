@@ -148,7 +148,14 @@ impl LDTerm {
         if x == y {
           self.clone()
         } else {
-          let tmp = generate_tvariable();
+          let tmp: String;
+          if y.starts_with("x") {
+            tmp = generate_tvariable();
+          } else if y.starts_with("k") {
+            tmp = generate_kvariable();
+          } else {
+            tmp = generate_cvariable();
+          }
           Abstraction(
             tmp.clone(),
             Box::new(t.substitution(y, &Variable(tmp.clone())).substitution(x, v)),
