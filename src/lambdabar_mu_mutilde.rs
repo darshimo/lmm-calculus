@@ -307,7 +307,7 @@ impl LbMMtContext {
     }
   }
 
-  pub fn rename_bound_variable(&self) -> LbMMtContext {
+  fn rename_bound_variable(&self) -> LbMMtContext {
     match self {
       CVariable(alpha) => CVariable(alpha.clone()),
       MtAbstraction(x, c) => {
@@ -508,7 +508,7 @@ impl LbMMtTerm {
     }
   }
 
-  pub fn rename_bound_variable(&self) -> LbMMtTerm {
+  fn rename_bound_variable(&self) -> LbMMtTerm {
     match self {
       TVariable(x) => TVariable(x.clone()),
       LAbstraction(x, v) => {
