@@ -272,7 +272,11 @@ impl LbMMtCompContext {
     match e {
       LbMMtContext::CVariable(alpha) => CVariable(alpha.clone()),
       LbMMtContext::MtAbstraction(x, c) => {
-        MtAbstraction(x.clone(), Box::new(LbMMtCompCommand::from(c)))
+        let y = generate_tvariable();
+        MtAbstraction(
+          y.clone(),
+          Box::new(LbMMtCompCommand::from(c).substitution_term(x, &TVariable(y))),
+        )
       }
       LbMMtContext::CStack(v, e1) => CStack(
         Box::new(LbMMtCompTerm::from(v)),
@@ -405,9 +409,19 @@ impl LbMMtCompTerm {
   pub fn from(v: &LbMMtTerm) -> LbMMtCompTerm {
     match v {
       LbMMtTerm::TVariable(x) => TVariable(x.clone()),
-      LbMMtTerm::LAbstraction(x, v1) => TLAbstraction(x.clone(), Box::new(LbMMtCompTerm::from(v1))),
+      LbMMtTerm::LAbstraction(x, v1) => {
+        let y = generate_tvariable();
+        TLAbstraction(
+          y.clone(),
+          Box::new(LbMMtCompTerm::from(v1).substitution_term(x, &TVariable(y))),
+        )
+      }
       LbMMtTerm::MAbstraction(beta, c) => {
-        MAbstraction(beta.clone(), Box::new(LbMMtCompCommand::from(c)))
+        let alpha = generate_cvariable();
+        MAbstraction(
+          alpha.clone(),
+          Box::new(LbMMtCompCommand::from(c).substitution_context(beta, &CVariable(alpha))),
+        )
       }
     }
   }
