@@ -180,6 +180,14 @@ impl LbMMtCommand {
       Box::new(CVariable(alpha.clone())),
     )
   }
+
+  pub fn rename_bound_variable(&self) -> LbMMtCommand {
+    let Command(v, e) = self;
+    Command(
+      Box::new(v.rename_bound_variable()),
+      Box::new(e.rename_bound_variable()),
+    )
+  }
 }
 
 impl Clone for LbMMtCommand {
@@ -295,6 +303,26 @@ impl LbMMtContext {
       CStack(v, t) => CStack(
         Box::new(v.substitution_context(beta, e)),
         Box::new(t.substitution_context(beta, e)),
+      ),
+    }
+  }
+
+  pub fn rename_bound_variable(&self) -> LbMMtContext {
+    match self {
+      CVariable(alpha) => CVariable(alpha.clone()),
+      MtAbstraction(x, c) => {
+        let y = generate_tvariable();
+        MtAbstraction(
+          y.clone(),
+          Box::new(
+            c.substitution_term(x, &TVariable(y))
+              .rename_bound_variable(),
+          ),
+        )
+      }
+      CStack(v, e) => CStack(
+        Box::new(v.rename_bound_variable()),
+        Box::new(e.rename_bound_variable()),
       ),
     }
   }
@@ -476,6 +504,32 @@ impl LbMMtTerm {
         let e2 = MtAbstraction(x.clone(), Box::new(c1));
         let c2 = Command(Box::new(n2), Box::new(e2));
         MAbstraction(alpha.clone(), Box::new(c2))
+      }
+    }
+  }
+
+  pub fn rename_bound_variable(&self) -> LbMMtTerm {
+    match self {
+      TVariable(x) => TVariable(x.clone()),
+      LAbstraction(x, v) => {
+        let y = generate_tvariable();
+        LAbstraction(
+          y.clone(),
+          Box::new(
+            v.substitution_term(x, &TVariable(y))
+              .rename_bound_variable(),
+          ),
+        )
+      }
+      MAbstraction(beta, c) => {
+        let alpha = generate_cvariable();
+        MAbstraction(
+          alpha.clone(),
+          Box::new(
+            c.substitution_context(beta, &CVariable(alpha))
+              .rename_bound_variable(),
+          ),
+        )
       }
     }
   }
