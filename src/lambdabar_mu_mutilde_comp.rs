@@ -4,8 +4,8 @@ use LbMMtCompCommand::Command;
 use LbMMtCompContext::{CLAbstraction, CStack, CVariable, MtAbstraction};
 use LbMMtCompTerm::{MAbstraction, TLAbstraction, TStack, TVariable};
 
-use crate::generator::*;
 use crate::lambdabar_mu_mutilde::*;
+use crate::variable::*;
 
 pub enum LbMMtCompCommand {
   Command(Box<LbMMtCompTerm>, Box<LbMMtCompContext>),
@@ -164,8 +164,13 @@ impl LbMMtCompCommand {
   }
 
   pub fn reverse(&self) -> LbMMtCompCommand {
+    let mut bv: Vec<String> = vec![];
+    self.reverse_sub(&mut bv)
+  }
+
+  fn reverse_sub(&self, bv: &mut Vec<String>) -> LbMMtCompCommand {
     let Command(v, e) = self;
-    Command(Box::new(e.reverse()), Box::new(v.reverse()))
+    Command(Box::new(e.reverse_sub(bv)), Box::new(v.reverse_sub(bv)))
   }
 }
 
@@ -285,12 +290,28 @@ impl LbMMtCompContext {
     }
   }
 
-  pub fn reverse(&self) -> LbMMtCompTerm {
+  pub fn reverse_sub(&self, bv: &mut Vec<String>) -> LbMMtCompTerm {
     match self {
-      CVariable(alpha) => TVariable(alpha.clone()),
-      MtAbstraction(x, c) => MAbstraction(x.clone(), Box::new(c.reverse())),
-      CStack(v, e) => TStack(Box::new(v.reverse()), Box::new(e.reverse())),
-      CLAbstraction(beta, e) => TLAbstraction(beta.clone(), Box::new(e.reverse())),
+      CVariable(alpha) => {
+        if bv.contains(alpha) {
+          TVariable(reverse_bound_variable(alpha))
+        } else {
+          TVariable(reverse_free_variable(alpha))
+        }
+      }
+      MtAbstraction(x, c) => {
+        bv.push(x.clone());
+        let ret = MAbstraction(reverse_bound_variable(x), Box::new(c.reverse_sub(bv)));
+        bv.pop();
+        ret
+      }
+      CStack(v, e) => TStack(Box::new(v.reverse_sub(bv)), Box::new(e.reverse_sub(bv))),
+      CLAbstraction(beta, e) => {
+        bv.push(beta.clone());
+        let ret = TLAbstraction(beta.clone(), Box::new(e.reverse_sub(bv)));
+        bv.pop();
+        ret
+      }
     }
   }
 }
@@ -426,12 +447,28 @@ impl LbMMtCompTerm {
     }
   }
 
-  pub fn reverse(&self) -> LbMMtCompContext {
+  pub fn reverse_sub(&self, bv: &mut Vec<String>) -> LbMMtCompContext {
     match self {
-      TVariable(x) => CVariable(x.clone()),
-      TLAbstraction(x, v) => CLAbstraction(x.clone(), Box::new(v.reverse())),
-      MAbstraction(beta, c) => MtAbstraction(beta.clone(), Box::new(c.reverse())),
-      TStack(e, v) => CStack(Box::new(e.reverse()), Box::new(v.reverse())),
+      TVariable(x) => {
+        if bv.contains(x) {
+          CVariable(reverse_bound_variable(x))
+        } else {
+          CVariable(reverse_free_variable(x))
+        }
+      }
+      TLAbstraction(x, v) => {
+        bv.push(x.clone());
+        let ret = CLAbstraction(reverse_bound_variable(x), Box::new(v.reverse_sub(bv)));
+        bv.pop();
+        ret
+      }
+      MAbstraction(beta, c) => {
+        bv.push(beta.clone());
+        let ret = MtAbstraction(reverse_bound_variable(beta), Box::new(c.reverse_sub(bv)));
+        bv.pop();
+        ret
+      }
+      TStack(e, v) => CStack(Box::new(e.reverse_sub(bv)), Box::new(v.reverse_sub(bv))),
     }
   }
 }
