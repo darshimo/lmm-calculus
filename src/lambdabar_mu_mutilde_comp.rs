@@ -172,6 +172,16 @@ impl LbMMtCompCommand {
     let Command(v, e) = self;
     Command(Box::new(e.reverse_sub(bv)), Box::new(v.reverse_sub(bv)))
   }
+
+  fn contains_context(&self, alpha: &String) -> bool {
+    let Command(v, e) = self;
+    v.contains_context(alpha) || e.contains_context(alpha)
+  }
+
+  fn contains_term(&self, x: &String) -> bool {
+    let Command(v, e) = self;
+    v.contains_term(x) || e.contains_term(x)
+  }
 }
 
 impl Clone for LbMMtCompCommand {
@@ -223,7 +233,7 @@ impl LbMMtCompContext {
       MtAbstraction(y, c) => {
         if x == y {
           self.clone()
-        } else {
+        } else if v.contains_term(y) {
           let tmp = generate_tvariable();
           MtAbstraction(
             tmp.clone(),
@@ -232,13 +242,28 @@ impl LbMMtCompContext {
                 .substitution_term(x, v),
             ),
           )
+        } else {
+          MtAbstraction(y.clone(), Box::new(c.substitution_term(x, v)))
         }
       }
       CStack(t, e) => CStack(
         Box::new(t.substitution_term(x, v)),
         Box::new(e.substitution_term(x, v)),
       ),
-      CLAbstraction(beta, e) => CLAbstraction(beta.clone(), Box::new(e.substitution_term(x, v))),
+      CLAbstraction(beta, e) => {
+        if v.contains_context(beta) {
+          let tmp = generate_cvariable();
+          CLAbstraction(
+            tmp.clone(),
+            Box::new(
+              e.substitution_context(beta, &CVariable(tmp))
+                .substitution_term(x, v),
+            ),
+          )
+        } else {
+          CLAbstraction(beta.clone(), Box::new(e.substitution_term(x, v)))
+        }
+      }
     }
   }
 
@@ -251,7 +276,20 @@ impl LbMMtCompContext {
           self.clone()
         }
       }
-      MtAbstraction(x, c) => MtAbstraction(x.clone(), Box::new(c.substitution_context(beta, e))),
+      MtAbstraction(x, c) => {
+        if e.contains_term(x) {
+          let tmp = generate_tvariable();
+          MtAbstraction(
+            tmp.clone(),
+            Box::new(
+              c.substitution_term(x, &TVariable(tmp))
+                .substitution_context(beta, e),
+            ),
+          )
+        } else {
+          MtAbstraction(x.clone(), Box::new(c.substitution_context(beta, e)))
+        }
+      }
       CStack(v, t) => CStack(
         Box::new(v.substitution_context(beta, e)),
         Box::new(t.substitution_context(beta, e)),
@@ -259,7 +297,7 @@ impl LbMMtCompContext {
       CLAbstraction(alpha, e1) => {
         if beta == alpha {
           self.clone()
-        } else {
+        } else if e.contains_context(alpha) {
           let tmp = generate_cvariable();
           CLAbstraction(
             tmp.clone(),
@@ -268,6 +306,8 @@ impl LbMMtCompContext {
                 .substitution_context(beta, e),
             ),
           )
+        } else {
+          CLAbstraction(alpha.clone(), Box::new(e1.substitution_context(beta, e)))
         }
       }
     }
@@ -308,10 +348,28 @@ impl LbMMtCompContext {
       CStack(v, e) => TStack(Box::new(v.reverse_sub(bv)), Box::new(e.reverse_sub(bv))),
       CLAbstraction(beta, e) => {
         bv.push(beta.clone());
-        let ret = TLAbstraction(beta.clone(), Box::new(e.reverse_sub(bv)));
+        let ret = TLAbstraction(reverse_bound_variable(beta), Box::new(e.reverse_sub(bv)));
         bv.pop();
         ret
       }
+    }
+  }
+
+  fn contains_context(&self, alpha: &String) -> bool {
+    match self {
+      CVariable(beta) => beta == alpha,
+      MtAbstraction(_, c) => c.contains_context(alpha),
+      CStack(v, e) => v.contains_context(alpha) || e.contains_context(alpha),
+      CLAbstraction(beta, e) => beta != alpha && e.contains_context(alpha),
+    }
+  }
+
+  fn contains_term(&self, x: &String) -> bool {
+    match self {
+      CVariable(_) => false,
+      MtAbstraction(y, c) => y != x && c.contains_term(x),
+      CStack(v, e) => v.contains_term(x) || e.contains_term(x),
+      CLAbstraction(_, e) => e.contains_term(x),
     }
   }
 }
@@ -383,7 +441,7 @@ impl LbMMtCompTerm {
       TLAbstraction(y, t) => {
         if x == y {
           self.clone()
-        } else {
+        } else if v.contains_term(y) {
           let tmp = generate_tvariable();
           TLAbstraction(
             tmp.clone(),
@@ -392,9 +450,24 @@ impl LbMMtCompTerm {
                 .substitution_term(x, v),
             ),
           )
+        } else {
+          TLAbstraction(y.clone(), Box::new(t.substitution_term(x, v)))
         }
       }
-      MAbstraction(beta, c) => MAbstraction(beta.clone(), Box::new(c.substitution_term(x, v))),
+      MAbstraction(beta, c) => {
+        if v.contains_context(beta) {
+          let tmp = generate_cvariable();
+          MAbstraction(
+            tmp.clone(),
+            Box::new(
+              c.substitution_context(beta, &CVariable(tmp))
+                .substitution_term(x, v),
+            ),
+          )
+        } else {
+          MAbstraction(beta.clone(), Box::new(c.substitution_term(x, v)))
+        }
+      }
       TStack(e, v1) => TStack(
         Box::new(e.substitution_term(x, v)),
         Box::new(v1.substitution_term(x, v)),
@@ -405,11 +478,24 @@ impl LbMMtCompTerm {
   fn substitution_context(&self, beta: &String, e: &LbMMtCompContext) -> LbMMtCompTerm {
     match self {
       TVariable(_) => self.clone(),
-      TLAbstraction(x, t) => TLAbstraction(x.clone(), Box::new(t.substitution_context(beta, e))),
+      TLAbstraction(x, t) => {
+        if e.contains_term(x) {
+          let tmp = generate_tvariable();
+          TLAbstraction(
+            tmp.clone(),
+            Box::new(
+              t.substitution_term(x, &TVariable(tmp))
+                .substitution_context(beta, e),
+            ),
+          )
+        } else {
+          TLAbstraction(x.clone(), Box::new(t.substitution_context(beta, e)))
+        }
+      }
       MAbstraction(alpha, c) => {
         if alpha == beta {
           self.clone()
-        } else {
+        } else if e.contains_context(alpha) {
           let tmp = generate_cvariable();
           MAbstraction(
             tmp.clone(),
@@ -418,6 +504,8 @@ impl LbMMtCompTerm {
                 .substitution_context(beta, e),
             ),
           )
+        } else {
+          MAbstraction(alpha.clone(), Box::new(c.substitution_context(beta, e)))
         }
       }
       TStack(e1, v) => TStack(
@@ -469,6 +557,24 @@ impl LbMMtCompTerm {
         ret
       }
       TStack(e, v) => CStack(Box::new(e.reverse_sub(bv)), Box::new(v.reverse_sub(bv))),
+    }
+  }
+
+  fn contains_context(&self, alpha: &String) -> bool {
+    match self {
+      TVariable(_) => false,
+      TLAbstraction(_, v) => v.contains_context(alpha),
+      MAbstraction(beta, c) => beta != alpha && c.contains_context(alpha),
+      TStack(e, v) => e.contains_context(alpha) || v.contains_context(alpha),
+    }
+  }
+
+  fn contains_term(&self, x: &String) -> bool {
+    match self {
+      TVariable(y) => y == x,
+      TLAbstraction(y, v) => y != x && v.contains_term(x),
+      MAbstraction(_, c) => c.contains_term(x),
+      TStack(e, v) => e.contains_term(x) || v.contains_term(x),
     }
   }
 }
