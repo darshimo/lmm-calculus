@@ -16,6 +16,10 @@ pub fn lexer(s: String, sep: &str) -> VecDeque<String> {
       if c != ' ' {
         ret.push_back(c.to_string());
       }
+    } else if c == '̃' {
+      let mut last = ret.pop_back().expect("panic");
+      last.push(c);
+      ret.push_back(last);
     } else {
       tmp.push(c);
     }
