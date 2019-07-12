@@ -364,7 +364,7 @@ impl fmt::Display for LDTerm {
           s1 = format!("{}", t1);
         }
         let mut s2: String;
-        if t2.is_variable() {
+        if t2.is_variable() || t2.is_pair() {
           s2 = format!("{}", t2);
         } else {
           s2 = format!("({})", t2);
